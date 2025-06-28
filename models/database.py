@@ -1,56 +1,20 @@
-"""
-Database models for video composition API.
+﻿"""
+Database models.
 """
 
 import uuid
 from datetime import datetime
-from enum import Enum
 from typing import Optional
 
-from sqlalchemy import (
-    Boolean,
-    DateTime,
-    Float,
-    Integer,
-    String,
-    Text,
-    func,
-)
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, ForeignKey, Text, Integer, Float, Boolean, DateTime, func
+from sqlalchemy.orm import mapped_column, Mapped
 
 from core.database import Base
-
-
-class JobStatus(str, Enum):
-    """Job status enumeration."""
-
-    PENDING = "pending"
-    QUEUED = "queued"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
-
-
-class JobPriority(str, Enum):
-    """Job priority enumeration."""
-
-    NORMAL = "normal"
-    HIGH = "high"
-    URGENT = "urgent"
-
-
-class FileType(str, Enum):
-    """File type enumeration."""
-
-    IMAGE = "image"
-    VIDEO = "video"
-    AUDIO = "audio"
+from models.api import JobStatus, JobPriority, FileType
 
 
 class Job(Base):
-    """Job model for tracking video composition jobs."""
+    """Model for representing video composition jobs."""
 
     __tablename__ = "jobs"
 
@@ -155,7 +119,7 @@ class UploadedFile(Base):
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
     
     # File metadata (stored as JSON)
-    metadata: Mapped[Optional[str]] = mapped_column(Text)
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text)
     
     # Media-specific properties
     width: Mapped[Optional[int]] = mapped_column(Integer)

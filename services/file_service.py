@@ -243,7 +243,7 @@ class FileService:
                 file_type=file_type,
                 mime_type=validation_info['mime_type'],
                 file_size=file_path.stat().st_size,
-                metadata=json.dumps(metadata) if metadata else None,
+                metadata_json=json.dumps(metadata) if metadata else None,  # Changed from metadata
                 width=metadata.get('width'),
                 height=metadata.get('height'),
                 duration=metadata.get('duration'),

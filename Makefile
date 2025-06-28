@@ -5,8 +5,8 @@
 # Variables
 PYTHON := python
 PIP := pip
-DOCKER_COMPOSE := docker compose
-DOCKER_COMPOSE_DEV := docker compose -f docker-compose.dev.yml
+DOCKER_COMPOSE := docker-compose
+DOCKER_COMPOSE_DEV := docker-compose -f docker-compose.dev.yml
 
 help: ## Show this help message
 @echo "Video Composition API - Available commands:"
@@ -17,7 +17,6 @@ $(PIP) install -r requirements.txt
 
 install-dev: ## Install development dependencies
 $(PIP) install -r requirements.txt -r requirements-dev.txt
-pre-commit install
 
 test: ## Run tests
 pytest tests/ -v --cov=./ --cov-report=html --cov-report=term
@@ -27,7 +26,6 @@ pytest tests/ -v
 
 lint: ## Run linting checks
 flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 mypy .
 
 format: ## Format code
@@ -82,18 +80,6 @@ $(DOCKER_COMPOSE) down -v --rmi all
 $(DOCKER_COMPOSE_DEV) down -v --rmi all
 docker system prune -af
 
-migrate: ## Run database migrations (if using Alembic)
-alembic upgrade head
-
-migrate-create: ## Create new migration
-alembic revision --autogenerate -m "$(MESSAGE)"
-
-backup-db: ## Backup PostgreSQL database
-$(DOCKER_COMPOSE) exec postgres pg_dump -U postgres video_composition > backup_$(shell date +%Y%m%d_%H%M%S).sql
-
-restore-db: ## Restore PostgreSQL database (specify BACKUP_FILE)
-$(DOCKER_COMPOSE) exec -T postgres psql -U postgres video_composition < $(BACKUP_FILE)
-
 security-check: ## Run security checks
 safety check
 bandit -r . -f json
@@ -111,7 +97,7 @@ pytest tests/ -v --cov=./ --cov-report=xml
 # Environment setup
 setup-dev: install-dev ## Setup development environment
 @echo "Creating .env file from example..."
-@if not exist .env copy .env.example .env
+@test -f .env || cp .env.example .env
 @echo "Development environment setup complete!"
 @echo "Edit .env file with your configuration before running 'make dev'"
 
