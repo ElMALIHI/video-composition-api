@@ -1,11 +1,11 @@
-"""
-Core application settings using Pydantic v2 settings management.
+﻿"""
+Application settings with environment variable support.
 """
 
 from pathlib import Path
 from typing import List, Optional
 
-from pydantic import Field, validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -104,14 +104,16 @@ class Settings(BaseSettings):
     # FFmpeg Configuration
     ffmpeg_binary: str = Field(default="ffmpeg", description="FFmpeg binary path")
 
-    @validator("api_keys", pre=True)
+    @field_validator("api_keys", mode="before")
+    @classmethod
     def parse_api_keys(cls, v):
         """Parse comma-separated API keys."""
         if isinstance(v, str):
             return [key.strip() for key in v.split(",") if key.strip()]
         return v
 
-    @validator("cors_origins", pre=True)
+    @field_validator("cors_origins", mode="before")
+    @classmethod
     def parse_cors_origins(cls, v):
         """Parse comma-separated CORS origins."""
         if isinstance(v, str):
@@ -126,7 +128,8 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 
-    @validator("upload_dir", "output_dir", pre=True)
+    @field_validator("upload_dir", "output_dir", mode="before")
+    @classmethod
     def ensure_path(cls, v):
         """Ensure path values are Path objects."""
         if isinstance(v, str):
