@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field, HttpUrl, validator
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 
 class JobStatus(str, Enum):
@@ -126,7 +126,8 @@ class SceneData(BaseModel):
     duration: float = Field(..., gt=0, description="Scene duration in seconds")
     transition: TransitionType = Field(default=TransitionType.NONE, description="Transition effect")
     
-    @validator('source')
+    @field_validator('source')
+    @classmethod
     def validate_source(cls, v):
         """Validate source is either a URL or file ID."""
         if not v:
@@ -143,7 +144,8 @@ class CompositionSettings(BaseModel):
     watermark_position: str = Field(default="bottom-right", description="Watermark position")
     watermark_opacity: float = Field(default=0.5, ge=0, le=1, description="Watermark opacity")
     
-    @validator('background_color')
+    @field_validator('background_color')
+    @classmethod
     def validate_background_color(cls, v):
         """Validate background color format."""
         if v.startswith('#') and len(v) in [4, 7]:
@@ -170,7 +172,8 @@ class VideoCompositionRequest(BaseModel):
     webhook_url: Optional[HttpUrl] = Field(None, description="Webhook URL for job completion")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
     
-    @validator('scenes')
+    @field_validator('scenes')
+    @classmethod
     def validate_scenes(cls, v):
         """Validate scenes dictionary."""
         if not v:
@@ -195,6 +198,23 @@ class TextOverlay(BaseModel):
     opacity: float = Field(default=1.0, ge=0, le=1, description="Text opacity")
     start_time: float = Field(default=0, ge=0, description="Start time in seconds")
     duration: Optional[float] = Field(None, ge=0, description="Duration in seconds")
+    
+    @field_validator('font_color', 'background_color')
+    @classmethod
+    def validate_color(cls, v):
+        if v is None:
+            return v
+        # Simple validation for hex colors or named colors
+        if v.startswith('#') and len(v) in [4, 7]:
+            return v
+        # Allow common color names
+        common_colors = {
+            'white', 'black', 'red', 'green', 'blue', 'yellow', 'cyan', 
+            'magenta', 'orange', 'purple', 'pink', 'brown', 'gray', 'grey'
+        }
+        if v.lower() in common_colors:
+            return v
+        raise ValueError(f"Invalid color: {v}")
 
 
 class ImageOverlay(BaseModel):
@@ -222,6 +242,20 @@ class Scene(BaseModel):
     image_overlays: List[ImageOverlay] = Field(default_factory=list)
     transition: TransitionType = Field(default=TransitionType.NONE)
     transition_duration: float = Field(default=0.5, ge=0, description="Transition duration in seconds")
+    
+    @field_validator('background_color')
+    @classmethod
+    def validate_background_color(cls, v):
+        if v is None:
+            return v
+        # Use same validation as text overlay colors
+        return TextOverlay.validate_color(v)
+    
+    def model_validate(self):
+        """Validate that at least one media source is provided."""
+        if not any([self.image_file_id, self.video_file_id, self.background_color]):
+            raise ValueError("Each scene must have at least one media source (image, video, or background color)")
+        return self
 
 
 # Job response models
@@ -320,7 +354,7 @@ class JobListQuery(BaseModel):
     page: int = Field(default=1, ge=1)
     per_page: int = Field(default=50, ge=1, le=100)
     sort_by: str = Field(default="created_at")
-    sort_order: str = Field(default="desc", regex="^(asc|desc)$")
+    sort_order: str = Field(default="desc", pattern="^(asc|desc)$")
 
 
 # Webhook models
